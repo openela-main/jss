@@ -6,13 +6,13 @@ Name:           jss
 
 # Upstream version number:
 %global         major_version 5
-%global         minor_version 3
-%global         update_version 0
+%global         minor_version 4
+%global         update_version 1
 
 # Downstream release number:
 # - development/stabilization (unsupported): 0.<n> where n >= 1
 # - GA/update (supported): <n> where n >= 1
-%global         release_number 1
+%global         release_number 2
 
 # Development phase:
 # - development (unsupported): alpha<n> where n >= 1
@@ -85,13 +85,13 @@ BuildRequires:  unzip
 BuildRequires:  gcc-c++
 BuildRequires:  nss-devel >= 3.66
 BuildRequires:  nss-tools >= 3.66
-BuildRequires:  %{java_devel}
-BuildRequires:  jpackage-utils
-BuildRequires:  slf4j
-BuildRequires:  slf4j-jdk14
-BuildRequires:  apache-commons-lang3
 
-BuildRequires:  junit
+BuildRequires:  %{java_devel}
+BuildRequires:  maven-local
+BuildRequires:  mvn(org.apache.commons:commons-lang3)
+BuildRequires:  mvn(org.slf4j:slf4j-api)
+BuildRequires:  mvn(org.slf4j:slf4j-jdk14)
+BuildRequires:  mvn(junit:junit)
 
 %description
 Java Security Services (JSS) is a java native interface which provides a bridge
@@ -105,11 +105,11 @@ This only works with gcj. Other JREs require that JCE providers be signed.
 Summary:        Java Security Services (JSS)
 
 Requires:       nss >= 3.66
+
 Requires:       %{java_headless}
-Requires:       jpackage-utils
-Requires:       slf4j
-Requires:       slf4j-jdk14
-Requires:       apache-commons-lang3
+Requires:       mvn(org.apache.commons:commons-lang3)
+Requires:       mvn(org.slf4j:slf4j-api)
+Requires:       mvn(org.slf4j:slf4j-jdk14)
 
 Obsoletes:      jss < %{version}-%{release}
 Provides:       jss = %{version}-%{release}
@@ -215,6 +215,9 @@ modutil -dbdir /etc/pki/nssdb -chkfips true | grep -q enabled && export FIPS_ENA
 
 ################################################################################
 %changelog
+* Wed May 31 2023 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.4.1-1
+- Rebase to JSS 5.4.1
+
 * Thu Feb 09 2023 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.3.0-1
 - Rebase to JSS 5.3.0
 
