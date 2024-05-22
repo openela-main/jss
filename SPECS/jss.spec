@@ -2,18 +2,22 @@
 Name:           jss
 ################################################################################
 
+%global         product_id idm-jss
+
+# Upstream version number:
 %global         major_version 4
-%global         minor_version 9
-%global         update_version 4
+%global         minor_version 11
+%global         update_version 0
 
 Summary:        Java Security Services (JSS)
-URL:            http://www.dogtagpki.org/wiki/JSS
+URL:            https://github.com/dogtagpki/jss
 License:        MPLv1.1 or GPLv2+ or LGPLv2+
 
 # For development (i.e. unsupported) releases, use x.y.z-0.n.<phase>.
 # For official (i.e. supported) releases, use x.y.z-r where r >=1.
+%global         release_number 1
 Version:        %{major_version}.%{minor_version}.%{update_version}
-Release:        1%{?_timestamp}%{?_commit_id}%{?dist}
+Release:        %{release_number}%{?_timestamp}%{?_commit_id}%{?dist}
 #global         _phase -alpha1
 
 # To generate the source tarball:
@@ -23,7 +27,11 @@ Release:        1%{?_timestamp}%{?_commit_id}%{?dist}
 # $ git push origin v4.5.<z>
 # Then go to https://github.com/dogtagpki/jss/releases and download the source
 # tarball.
-Source:         https://github.com/dogtagpki/%{name}/archive/v%{version}%{?_phase}/%{name}-%{version}%{?_phase}.tar.gz
+Source:         https://github.com/dogtagpki/jss/archive/v%{version}%{?_phase}/jss-%{version}%{?_phase}.tar.gz
+
+# md2man not available on i686
+ExcludeArch: i686
+
 
 # To create a patch for all changes since a version tag:
 # $ git format-patch \
@@ -50,10 +58,10 @@ Source:         https://github.com/dogtagpki/%{name}/archive/v%{version}%{?_phas
 # Build Options
 ################################################################################
 
-# By default the build will execute unit tests unless --without test
+# By default the build will execute unit tests unless --without tests
 # option is specified.
 
-%bcond_without test
+%bcond_without tests
 
 ################################################################################
 # Build Dependencies
@@ -76,6 +84,17 @@ BuildRequires:  apache-commons-lang3
 
 BuildRequires:  junit
 
+%description
+Java Security Services (JSS) is a java native interface which provides a bridge
+for java-based applications to use native Network Security Services (NSS).
+This only works with gcj. Other JREs require that JCE providers be signed.
+
+################################################################################
+%package -n %{product_id}
+################################################################################
+
+Summary:        Java Security Services (JSS)
+
 Requires:       nss >= 3.44
 Requires:       %{java_headless}
 Requires:       jpackage-utils
@@ -84,36 +103,44 @@ Requires:       glassfish-jaxb-api
 Requires:       slf4j-jdk14
 Requires:       apache-commons-lang3
 
+Obsoletes:      jss < %{version}-%{release}
+Provides:       jss = %{version}-%{release}
 Provides:       jss = %{major_version}.%{minor_version}
+Provides:       %{product_id} = %{major_version}.%{minor_version}
 
 Conflicts:      ldapjdk < 4.20
 Conflicts:      idm-console-framework < 1.2
 Conflicts:      tomcatjss < 7.6.0
 Conflicts:      pki-base < 10.10.0
 
-%description
+%description -n %{product_id}
 Java Security Services (JSS) is a java native interface which provides a bridge
 for java-based applications to use native Network Security Services (NSS).
 This only works with gcj. Other JREs require that JCE providers be signed.
 
 ################################################################################
-%package javadoc
+%package -n %{product_id}-javadoc
 ################################################################################
 
 Summary:        Java Security Services (JSS) Javadocs
 
-Provides:       javadoc = %{major_version}.%{minor_version}
+Obsoletes:      jss-javadoc < %{version}-%{release}
+Provides:       jss-javadoc = %{version}-%{release}
+Provides:       jss-javadoc = %{major_version}.%{minor_version}
+Provides:       %{product_id}-javadoc = %{major_version}.%{minor_version}
 
-%description javadoc
+%description -n %{product_id}-javadoc
 This package contains the API documentation for JSS.
 
 ################################################################################
 %prep
+################################################################################
 
-%autosetup -n %{name}-%{version}%{?_phase} -p 1
+%autosetup -n jss-%{version}%{?_phase} -p 1
 
 ################################################################################
 %build
+################################################################################
 
 %set_build_flags
 
@@ -149,12 +176,13 @@ cd %{_vpath_builddir}
     --no-print-directory \
     javadoc
 
-%if %{with test}
+%if %{with tests}
 ctest --output-on-failure
 %endif
 
 ################################################################################
 %install
+################################################################################
 
 cd %{_vpath_builddir}
 
@@ -167,7 +195,8 @@ cd %{_vpath_builddir}
     install
 
 ################################################################################
-%files
+%files -n %{product_id}
+################################################################################
 
 %defattr(-,root,root,-)
 %doc jss.html
@@ -176,13 +205,23 @@ cd %{_vpath_builddir}
 %{_jnidir}/*
 
 ################################################################################
-%files javadoc
+%files -n %{product_id}-javadoc
+################################################################################
 
 %defattr(-,root,root,-)
-%{_javadocdir}/%{name}-%{version}/
+%{_javadocdir}/jss-%{version}/
 
 ################################################################################
 %changelog
+* Thu Feb 08 2024 Red Hat PKI Team <rhcs-maint@redhat.com> 4.11.0-1
+- Rebase to JSS 4.11.0
+
+* Tue Jan 16 2024 Red Hat PKI Team <rhcs-maint@redhat.com> 4.10.0-0.1
+- Rebase to JSS 4.10.0-alpha1
+
+* Fri Jan 12 2024 Red Hat PKI Team <rhcs-maint@redhat.com> 4.9.8-1
+- Rebase to JSS 4.9.8
+
 * Wed Jun 01 2022 Red Hat PKI Team <rhcs-maint@redhat.com> 4.9.4-1
 - Rebase to JSS 4.9.4
 - Bug 2013674 - JSS cannot be properly initialized after using another NSS-backed security provider
