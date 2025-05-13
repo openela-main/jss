@@ -2,11 +2,13 @@
 Name:           jss
 ################################################################################
 
-%global         product_id idm-jss
+# Note: This is required for IdM. Don't remove or merge upstream.
+%global         vendor_id idm
+%global         product_id %{vendor_id}-jss
 
 # Upstream version number:
 %global         major_version 5
-%global         minor_version 5
+%global         minor_version 6
 %global         update_version 0
 
 # Downstream release number:
@@ -25,7 +27,7 @@ Name:           jss
 
 Summary:        Java Security Services (JSS)
 URL:            https://github.com/dogtagpki/jss
-License:        (MPL-1.1 or GPL-2.0-or-later or LGPL-2.1-or-later) and Apache-2.0
+License:        (MPL-1.1 OR GPL-2.0-or-later OR LGPL-2.1-or-later) AND Apache-2.0
 Version:        %{major_version}.%{minor_version}.%{update_version}
 Release:        %{release_number}%{?phase:.}%{?phase}%{?timestamp:.}%{?timestamp}%{?commit_id:.}%{?commit_id}%{?dist}
 
@@ -55,9 +57,26 @@ ExcludeArch: i686
 # Java
 ################################################################################
 
+# use Java 17 on Fedora 39 or older and RHEL 9 or older
+# otherwise, use Java 21
+
+# maven-local is a subpackage of javapackages-tools
+
+%if 0%{?fedora} && 0%{?fedora} <= 39 || 0%{?rhel} && 0%{?rhel} <= 9
+
 %define java_devel java-17-openjdk-devel
 %define java_headless java-17-openjdk-headless
 %define java_home %{_jvmdir}/jre-17-openjdk
+%define maven_local maven-local-openjdk17
+
+%else
+
+%define java_devel java-21-openjdk-devel
+%define java_headless java-21-openjdk-headless
+%define java_home %{_jvmdir}/jre-21-openjdk
+%define maven_local maven-local
+
+%endif
 
 ################################################################################
 # Build Options
@@ -68,10 +87,10 @@ ExcludeArch: i686
 
 %bcond_without javadoc
 
-# By default the build will not execute unit tests unless --with tests
-# option is specified.
+# By default the tests package will be built and the tests will executed
+# unless --without tests option is specified.
 
-%bcond_with tests
+%bcond_without tests
 
 ################################################################################
 # Build Dependencies
@@ -83,15 +102,14 @@ BuildRequires:  zip
 BuildRequires:  unzip
 
 BuildRequires:  gcc-c++
-BuildRequires:  nss-devel >= 3.66
-BuildRequires:  nss-tools >= 3.66
+BuildRequires:  nss-devel >= 3.97
+BuildRequires:  nss-tools >= 3.97
 
 BuildRequires:  %{java_devel}
-BuildRequires:  maven-local
+BuildRequires:  %{maven_local}
 BuildRequires:  mvn(org.apache.commons:commons-lang3)
 BuildRequires:  mvn(org.slf4j:slf4j-api)
 BuildRequires:  mvn(org.slf4j:slf4j-jdk14)
-BuildRequires:  mvn(junit:junit)
 
 %description
 Java Security Services (JSS) is a java native interface which provides a bridge
@@ -104,7 +122,7 @@ This only works with gcj. Other JREs require that JCE providers be signed.
 
 Summary:        Java Security Services (JSS)
 
-Requires:       nss >= 3.66
+Requires:       nss >= 3.97
 
 Requires:       %{java_headless}
 Requires:       mvn(org.apache.commons:commons-lang3)
@@ -145,8 +163,8 @@ Requires:       mvn(org.apache.tomcat:tomcat-juli) >= 9.0.62
 # This will remove installed Tomcat JSS packages.
 Obsoletes:      tomcatjss <= 8.5
 Conflicts:      tomcatjss <= 8.5
-Obsoletes:      idm-tomcatjss <= 8.5
-Conflicts:      idm-tomcatjss <= 8.5
+Obsoletes:      %{vendor_id}-tomcatjss <= 8.5
+Conflicts:      %{vendor_id}-tomcatjss <= 8.5
 
 %if 0%{?rhel} <= 8
 # PKI Servlet Engine has been replaced with Tomcat.
@@ -159,6 +177,23 @@ Conflicts:      pki-servlet-engine <= 9.0
 JSS Connector for Tomcat is a Java Secure Socket Extension (JSSE)
 module for Apache Tomcat that uses Java Security Services (JSS),
 a Java interface to Network Security Services (NSS).
+
+################################################################################
+%package -n %{product_id}-tools
+################################################################################
+
+Summary:        Java Security Services (JSS) Tools
+
+Provides:       jss-tools = %{version}-%{release}
+Provides:       jss-tools = %{major_version}.%{minor_version}
+Provides:       %{product_id}-tools = %{major_version}.%{minor_version}
+
+# Some PKI tools have been moved into jss-tools.
+Conflicts:      pki-tools < 11.6
+Conflicts:      %{vendor_id}-pki-tools < 11.6
+
+%description -n %{product_id}-tools
+This package contains JSS tools.
 
 %if %{with javadoc}
 ################################################################################
@@ -333,6 +368,14 @@ cp base/target/jss-tests.jar %{buildroot}%{_datadir}/jss/tests/lib
 %files -n %{product_id}-tomcat -f .mfiles-jss-tomcat
 ################################################################################
 
+################################################################################
+%files -n %{product_id}-tools
+################################################################################
+
+%{_bindir}/p12tool
+%{_bindir}/p7tool
+%{_bindir}/sslget
+
 %if %{with javadoc}
 ################################################################################
 %files -n %{product_id}-javadoc -f .mfiles-javadoc
@@ -351,6 +394,12 @@ cp base/target/jss-tests.jar %{buildroot}%{_datadir}/jss/tests/lib
 
 ################################################################################
 %changelog
+* Thu Feb 13 2025 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.6.0-1
+- Rebase to JSS 5.6.0
+
+* Wed Dec 04 2024 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.6.0-alpha1
+- Rebase to JSS 5.6.0-alpha1
+
 * Wed Feb 21 2024 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.5.0-1
 - Rebase to JSS 5.5.0
 
