@@ -8,7 +8,7 @@ Name:           jss
 
 # Upstream version number:
 %global         major_version 5
-%global         minor_version 6
+%global         minor_version 7
 %global         update_version 0
 
 # Downstream release number:
@@ -20,7 +20,11 @@ Name:           jss
 # - development (unsupported): alpha<n> where n >= 1
 # - stabilization (unsupported): beta<n> where n >= 1
 # - GA/update (supported): <none>
-#global         phase
+%undefine       phase
+
+%if 0%{?rhel} && 0%{?rhel} >= 9
+%global enable_nss_version_pqc_def_flag -DENABLE_NSS_VERSION_PQC_DEF=ON
+%endif
 
 %undefine       timestamp
 %undefine       commit_id
@@ -102,8 +106,8 @@ BuildRequires:  zip
 BuildRequires:  unzip
 
 BuildRequires:  gcc-c++
-BuildRequires:  nss-devel >= 3.97
-BuildRequires:  nss-tools >= 3.97
+BuildRequires:  nss-devel >= 3.101
+BuildRequires:  nss-tools >= 3.101
 
 BuildRequires:  %{java_devel}
 BuildRequires:  %{maven_local}
@@ -122,7 +126,7 @@ This only works with gcj. Other JREs require that JCE providers be signed.
 
 Summary:        Java Security Services (JSS)
 
-Requires:       nss >= 3.97
+Requires:       nss >= 3.101
 
 Requires:       %{java_headless}
 Requires:       mvn(org.apache.commons:commons-lang3)
@@ -153,11 +157,17 @@ Summary:        Java Security Services (JSS) Connector for Tomcat
 BuildRequires:  mvn(org.apache.tomcat:tomcat-catalina) >= 9.0.62
 BuildRequires:  mvn(org.apache.tomcat:tomcat-coyote) >= 9.0.62
 BuildRequires:  mvn(org.apache.tomcat:tomcat-juli) >= 9.0.62
+%if 0%{?rhel} && 0%{?rhel} >= 10
+BuildRequires:  tomcat9-lib
+%endif
 
 Requires:       %{product_id} = %{version}-%{release}
 Requires:       mvn(org.apache.tomcat:tomcat-catalina) >= 9.0.62
 Requires:       mvn(org.apache.tomcat:tomcat-coyote) >= 9.0.62
 Requires:       mvn(org.apache.tomcat:tomcat-juli) >= 9.0.62
+%if 0%{?rhel} && 0%{?rhel} >= 10
+Requires:       tomcat9 >= 1:9.0.62
+%endif
 
 # Tomcat JSS has been replaced with JSS Connector for Tomcat.
 # This will remove installed Tomcat JSS packages.
@@ -311,7 +321,7 @@ touch %{_vpath_builddir}/.targets/finished_generate_javadocs
     --lib-dir=%{_libdir} \
     --sysconf-dir=%{_sysconfdir} \
     --share-dir=%{_datadir} \
-    --cmake=%{__cmake} \
+    --cmake="%{__cmake} %{?enable_nss_version_pqc_def_flag}" \
     --java-home=%{java_home} \
     --jni-dir=%{_jnidir} \
     --version=%{version} \
@@ -394,10 +404,16 @@ cp base/target/jss-tests.jar %{buildroot}%{_datadir}/jss/tests/lib
 
 ################################################################################
 %changelog
+* Tue Aug 05 2025 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.7.0-1
+- Rebase to JSS 5.7.0
+
+* Tue Jul 01 2025 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.7.0-0.1.beta1
+- Rebase to JSS 5.7.0-beta1
+
 * Thu Feb 13 2025 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.6.0-1
 - Rebase to JSS 5.6.0
 
-* Wed Dec 04 2024 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.6.0-alpha1
+* Wed Dec 04 2024 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.6.0-0.1.alpha1
 - Rebase to JSS 5.6.0-alpha1
 
 * Wed Feb 21 2024 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.5.0-1
