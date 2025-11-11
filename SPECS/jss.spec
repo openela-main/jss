@@ -7,19 +7,23 @@ Name:           jss
 
 # Upstream version number:
 %global         major_version 5
-%global         minor_version 6
+%global         minor_version 7
 %global         update_version 0
 
 # Downstream release number:
 # - development/stabilization (unsupported): 0.<n> where n >= 1
 # - GA/update (supported): <n> where n >= 1
-%global         release_number 1
+%global         release_number 2
 
 # Development phase:
 # - development (unsupported): alpha<n> where n >= 1
 # - stabilization (unsupported): beta<n> where n >= 1
 # - GA/update (supported): <none>
-#global         phase
+%undefine       phase
+
+%if 0%{?rhel} && 0%{?rhel} >= 9
+%global enable_nss_version_pqc_def_flag -DENABLE_NSS_VERSION_PQC_DEF=ON
+%endif
 
 %undefine       timestamp
 %undefine       commit_id
@@ -56,9 +60,26 @@ ExcludeArch: i686
 # Java
 ################################################################################
 
+# use Java 17 on Fedora 39 or older and RHEL 9 or older
+# otherwise, use Java 21
+
+# maven-local is a subpackage of javapackages-tools
+
+%if 0%{?fedora} && 0%{?fedora} <= 39 || 0%{?rhel} && 0%{?rhel} <= 9
+
+%define java_devel java-17-openjdk-devel
+%define java_headless java-17-openjdk-headless
+%define java_home %{_jvmdir}/jre-17-openjdk
+%define maven_local maven-local-openjdk17
+
+%else
+
 %define java_devel java-21-openjdk-devel
 %define java_headless java-21-openjdk-headless
 %define java_home %{_jvmdir}/jre-21-openjdk
+%define maven_local maven-local
+
+%endif
 
 ################################################################################
 # Build Options
@@ -69,10 +90,10 @@ ExcludeArch: i686
 
 %bcond_without javadoc
 
-# By default the build will not execute unit tests unless --with tests
-# option is specified.
+# By default the tests package will be built and the tests will executed
+# unless --without tests option is specified.
 
-%bcond_without tests
+%bcond_with tests
 
 ################################################################################
 # Build Dependencies
@@ -84,15 +105,14 @@ BuildRequires:  zip
 BuildRequires:  unzip
 
 BuildRequires:  gcc-c++
-BuildRequires:  nss-devel >= 3.97
-BuildRequires:  nss-tools >= 3.97
+BuildRequires:  nss-devel >= 3.101
+BuildRequires:  nss-tools >= 3.101
 
 BuildRequires:  %{java_devel}
-BuildRequires:  maven-local
+BuildRequires:  %{maven_local}
 BuildRequires:  mvn(org.apache.commons:commons-lang3)
 BuildRequires:  mvn(org.slf4j:slf4j-api)
 BuildRequires:  mvn(org.slf4j:slf4j-jdk14)
-BuildRequires:  mvn(junit:junit)
 
 %description
 Java Security Services (JSS) is a java native interface which provides a bridge
@@ -105,7 +125,7 @@ This only works with gcj. Other JREs require that JCE providers be signed.
 
 Summary:        Java Security Services (JSS)
 
-Requires:       nss >= 3.97
+Requires:       nss >= 3.101
 
 Requires:       %{java_headless}
 Requires:       mvn(org.apache.commons:commons-lang3)
@@ -136,13 +156,17 @@ Summary:        Java Security Services (JSS) Connector for Tomcat
 BuildRequires:  mvn(org.apache.tomcat:tomcat-catalina) >= 9.0.62
 BuildRequires:  mvn(org.apache.tomcat:tomcat-coyote) >= 9.0.62
 BuildRequires:  mvn(org.apache.tomcat:tomcat-juli) >= 9.0.62
+%if 0%{?rhel} && 0%{?rhel} >= 10
 BuildRequires:  tomcat9-lib
+%endif
 
 Requires:       %{product_id} = %{version}-%{release}
 Requires:       mvn(org.apache.tomcat:tomcat-catalina) >= 9.0.62
 Requires:       mvn(org.apache.tomcat:tomcat-coyote) >= 9.0.62
 Requires:       mvn(org.apache.tomcat:tomcat-juli) >= 9.0.62
+%if 0%{?rhel} && 0%{?rhel} >= 10
 Requires:       tomcat9 >= 1:9.0.62
+%endif
 
 # Tomcat JSS has been replaced with JSS Connector for Tomcat.
 # This will remove installed Tomcat JSS packages.
@@ -296,7 +320,7 @@ touch %{_vpath_builddir}/.targets/finished_generate_javadocs
     --lib-dir=%{_libdir} \
     --sysconf-dir=%{_sysconfdir} \
     --share-dir=%{_datadir} \
-    --cmake=%{__cmake} \
+    --cmake="%{__cmake} %{?enable_nss_version_pqc_def_flag}" \
     --java-home=%{java_home} \
     --jni-dir=%{_jnidir} \
     --version=%{version} \
@@ -379,6 +403,11 @@ cp base/target/jss-tests.jar %{buildroot}%{_datadir}/jss/tests/lib
 
 ################################################################################
 %changelog
+* Wed Aug 6 2025 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.7.0-2
+- Rebase to JSS 5.7.0
+- Jira Ticket RHCS-98721 ACME server: RFC 8555 violation: Support ES256 #4638 [rhel-10]
+- Jira Ticket IDM-2428 build encountered: PQC alg defs to match with NSS V3.112
+
 * Sat Feb 15 2025 Red Hat PKI Team <rhcs-maint@redhat.com>- 5.6.0-1
 - Rebase to JSS 5.6.0
 
