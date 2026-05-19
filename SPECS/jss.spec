@@ -7,19 +7,19 @@ Name:           jss
 
 # Upstream version number:
 %global         major_version 5
-%global         minor_version 7
+%global         minor_version 9
 %global         update_version 0
 
 # Downstream release number:
 # - development/stabilization (unsupported): 0.<n> where n >= 1
 # - GA/update (supported): <n> where n >= 1
-%global         release_number 2
+%global         release_number 3
 
 # Development phase:
 # - development (unsupported): alpha<n> where n >= 1
 # - stabilization (unsupported): beta<n> where n >= 1
 # - GA/update (supported): <none>
-%undefine       phase
+#global         phase beta2
 
 %if 0%{?rhel} && 0%{?rhel} >= 9
 %global enable_nss_version_pqc_def_flag -DENABLE_NSS_VERSION_PQC_DEF=ON
@@ -105,8 +105,8 @@ BuildRequires:  zip
 BuildRequires:  unzip
 
 BuildRequires:  gcc-c++
-BuildRequires:  nss-devel >= 3.101
-BuildRequires:  nss-tools >= 3.101
+BuildRequires:  nss-devel >= 3.112
+BuildRequires:  nss-tools >= 3.112
 
 BuildRequires:  %{java_devel}
 BuildRequires:  %{maven_local}
@@ -125,7 +125,7 @@ This only works with gcj. Other JREs require that JCE providers be signed.
 
 Summary:        Java Security Services (JSS)
 
-Requires:       nss >= 3.101
+Requires:       nss >= 3.112
 
 Requires:       %{java_headless}
 Requires:       mvn(org.apache.commons:commons-lang3)
@@ -153,19 +153,35 @@ This only works with gcj. Other JREs require that JCE providers be signed.
 Summary:        Java Security Services (JSS) Connector for Tomcat
 
 # Tomcat
+%if 0%{?rhel} && 0%{?rhel} >= 11
+BuildRequires:  mvn(org.apache.tomcat:tomcat-catalina) >= 10.1.36
+BuildRequires:  mvn(org.apache.tomcat:tomcat-coyote) >= 10.1.36
+BuildRequires:  mvn(org.apache.tomcat:tomcat-juli) >= 10.1.36
+
+Requires:       %{product_id} = %{version}-%{release}
+Requires:       mvn(org.apache.tomcat:tomcat-catalina) >= 10.1.36
+Requires:       mvn(org.apache.tomcat:tomcat-coyote) >= 10.1.36
+Requires:       mvn(org.apache.tomcat:tomcat-juli) >= 10.1.36
+
+%else
+
 BuildRequires:  mvn(org.apache.tomcat:tomcat-catalina) >= 9.0.62
 BuildRequires:  mvn(org.apache.tomcat:tomcat-coyote) >= 9.0.62
 BuildRequires:  mvn(org.apache.tomcat:tomcat-juli) >= 9.0.62
-%if 0%{?rhel} && 0%{?rhel} >= 10
-BuildRequires:  tomcat9-lib
-%endif
+
+BuildRequires:  mvn(org.apache.tomcat:tomcat-catalina) < 10
+BuildRequires:  mvn(org.apache.tomcat:tomcat-coyote) < 10
+BuildRequires:  mvn(org.apache.tomcat:tomcat-juli) < 10
 
 Requires:       %{product_id} = %{version}-%{release}
 Requires:       mvn(org.apache.tomcat:tomcat-catalina) >= 9.0.62
 Requires:       mvn(org.apache.tomcat:tomcat-coyote) >= 9.0.62
 Requires:       mvn(org.apache.tomcat:tomcat-juli) >= 9.0.62
-%if 0%{?rhel} && 0%{?rhel} >= 10
-Requires:       tomcat9 >= 1:9.0.62
+
+Requires:       mvn(org.apache.tomcat:tomcat-catalina) < 10
+Requires:       mvn(org.apache.tomcat:tomcat-coyote) < 10
+Requires:       mvn(org.apache.tomcat:tomcat-juli) < 10
+
 %endif
 
 # Tomcat JSS has been replaced with JSS Connector for Tomcat.
@@ -252,6 +268,21 @@ This package provides test suite for JSS.
 # flatten-maven-plugin is not available in RPM
 %pom_remove_plugin org.codehaus.mojo:flatten-maven-plugin
 
+
+%if 0%{?rhel} >= 11
+#
+# specify Maven artifact locations
+%mvn_file org.dogtagpki.jss:jss-tomcat         jss/jss-tomcat
+%mvn_file org.dogtagpki.jss:jss-tomcat-10.1     jss/jss-tomcat-10.1
+
+# specify Maven artifact packages
+%mvn_package org.dogtagpki.jss:jss-tomcat      jss-tomcat
+%mvn_package org.dogtagpki.jss:jss-tomcat-10.1  jss-tomcat
+
+%pom_disable_module tomcat-9.0
+
+%else
+
 # specify Maven artifact locations
 %mvn_file org.dogtagpki.jss:jss-tomcat         jss/jss-tomcat
 %mvn_file org.dogtagpki.jss:jss-tomcat-9.0     jss/jss-tomcat-9.0
@@ -259,6 +290,10 @@ This package provides test suite for JSS.
 # specify Maven artifact packages
 %mvn_package org.dogtagpki.jss:jss-tomcat      jss-tomcat
 %mvn_package org.dogtagpki.jss:jss-tomcat-9.0  jss-tomcat
+
+%pom_disable_module tomcat-10.1
+
+%endif
 
 ################################################################################
 %build
@@ -323,7 +358,6 @@ touch %{_vpath_builddir}/.targets/finished_generate_javadocs
     --cmake="%{__cmake} %{?enable_nss_version_pqc_def_flag}" \
     --java-home=%{java_home} \
     --jni-dir=%{_jnidir} \
-    --version=%{version} \
     --without-java \
     --without-javadoc \
     %{!?with_tests:--without-tests} \
@@ -403,6 +437,25 @@ cp base/target/jss-tests.jar %{buildroot}%{_datadir}/jss/tests/lib
 
 ################################################################################
 %changelog
+* Fri Mar 13 2026 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.9.0-3
+- Revert to tomcat 9
+- Resolves: RHEL-155406
+
+* Tue Mar 10 2026 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.9.0-2
+- Rebuilt for exception target
+
+* Fri Mar 06 2026 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.9.0-1
+- Rebase to JSS 5.9.0
+- Resolves: RHEL-150666
+
+* Fri Feb 06 2026 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.9.0-1-beta2
+- Rebase to JSS 5.9.0-beta2
+- Resolves RHEL-143049: Add support to ML-DSA
+
+* Wed Jan 21 2026 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.9.0-1-beta1
+- Rebase to JSS 5.9.0-beta1
+- Resolves RHEL-143049: Add support to ML-DSA
+
 * Wed Aug 6 2025 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.7.0-2
 - Rebase to JSS 5.7.0
 - Jira Ticket RHCS-98721 ACME server: RFC 8555 violation: Support ES256 #4638 [rhel-10]
