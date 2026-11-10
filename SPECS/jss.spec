@@ -13,7 +13,7 @@ Name:           jss
 # Downstream release number:
 # - development/stabilization (unsupported): 0.<n> where n >= 1
 # - GA/update (supported): <n> where n >= 1
-%global         release_number 3
+%global         release_number 4
 
 # Development phase:
 # - development (unsupported): alpha<n> where n >= 1
@@ -153,7 +153,7 @@ This only works with gcj. Other JREs require that JCE providers be signed.
 Summary:        Java Security Services (JSS) Connector for Tomcat
 
 # Tomcat
-%if 0%{?rhel} && 0%{?rhel} >= 11
+%if 0%{?rhel} && 0%{?rhel} >= 10
 BuildRequires:  mvn(org.apache.tomcat:tomcat-catalina) >= 10.1.36
 BuildRequires:  mvn(org.apache.tomcat:tomcat-coyote) >= 10.1.36
 BuildRequires:  mvn(org.apache.tomcat:tomcat-juli) >= 10.1.36
@@ -269,7 +269,7 @@ This package provides test suite for JSS.
 %pom_remove_plugin org.codehaus.mojo:flatten-maven-plugin
 
 
-%if 0%{?rhel} >= 11
+%if 0%{?rhel} >= 10
 #
 # specify Maven artifact locations
 %mvn_file org.dogtagpki.jss:jss-tomcat         jss/jss-tomcat
@@ -437,6 +437,10 @@ cp base/target/jss-tests.jar %{buildroot}%{_datadir}/jss/tests/lib
 
 ################################################################################
 %changelog
+* Wed Jul 29 2026 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.9.0-4
+- Upgrade to tomcat 10
+- Resolves: RHEL-210971
+
 * Fri Mar 13 2026 Red Hat PKI Team <rhcs-maint@redhat.com> - 5.9.0-3
 - Revert to tomcat 9
 - Resolves: RHEL-155406
